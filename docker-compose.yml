@@ -1,0 +1,72 @@
+services:
+  db:
+    image: postgres:16
+    container_name: watchlist-db
+    environment:
+      POSTGRES_DB: watchlist
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d watchlist"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  user-service:
+    build:
+      context: ./src/UserService
+      dockerfile: Dockerfile
+    container_name: watchlist-user-service
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Default: Host=db;Port=5432;Database=watchlist;Username=app;Password=app_password
+    ports:
+      - "8081:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  movie-service:
+    build:
+      context: ./src/MovieService
+      dockerfile: Dockerfile
+    container_name: watchlist-movie-service
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Default: Host=db;Port=5432;Database=watchlist;Username=app;Password=app_password
+    ports:
+      - "8082:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  watchlist-service:
+    build:
+      context: ./src/WatchlistService
+      dockerfile: Dockerfile
+    container_name: watchlist-watchlist-service
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Default: Host=db;Port=5432;Database=watchlist;Username=app;Password=app_password
+      Services__Users: http://user-service:8080
+      Services__Movies: http://movie-service:8080
+    ports:
+      - "8083:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      movie-service:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  db_data:

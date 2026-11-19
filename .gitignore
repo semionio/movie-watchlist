@@ -1,0 +1,19 @@
+# .NET
+**/bin/
+**/obj/
+.vs/
+*.user
+*.suo
+
+# Local environment
+.env
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Evidence generated locally (keep README)
+docs/evidence/*.txt
+!docs/evidence/README.md
